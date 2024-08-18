@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPA & CGPA Calculator</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: url('C:/Users/tmony/OneDrive/Pictures/calcu2.jpg') no-repeat center center fixed;
+            background-size: cover;
+            background-repeat: no-repeat;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* Full viewport height */
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            max-width: 1200px;
+            width: 100%; /* Full width within the maximum width */
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent background */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .calc-section {
+            width: 48%;
+            padding: 10px;
+            background: #fcb6c1; /* Baby pink color */
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-right: 2%; /* Space between the two sections */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Optional: Add shadow for better separation */
+        }
+        .calc-section:last-child {
+            margin-right: 0; /* Remove margin from the last section */
+        }
+        h2, h1 {
+            text-align: center;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: #fff;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #fff; /* Removed blue color */
+            color: #333; /* Changed text color for better readability */
+        }
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 5px;
+            box-sizing: border-box;
+            color: #888; /* Light grey text color */
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #333; /* Dark grey color */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #555; /* Slightly lighter grey on hover */
+        }
+        .result {
+            margin-top: 20px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .result h2 {
+            color: #28a745;
+        }
+        .form-group {
+            margin-bottom: 15px; /* Add space between form groups */
+        }
+        .semester-box {
+            margin-bottom: 20px; /* Add space before GPA inputs */
+        }
+    </style>
+</head>
+<body ng-app="combinedApp" ng-controller="CombinedController">
+    <div class="container">
+        <!-- GPA Calculator -->
+        <div class="calc-section">
+            <h2><big>GPA Calculator</big></h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Course Code</th>
+                        <th>Course Name</th>
+                        <th>Credits</th>
+                        <th>Grade</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="course in gpaCourses">
+                        <td><input type="text" ng-model="course.code" placeholder="Enter course code"></td>
+                        <td><input type="text" ng-model="course.subject" placeholder="Enter course name"></td>
+                        <td><input type="number" ng-model="course.credits" placeholder="Enter credits"></td>
+                        <td>
+                            <select ng-model="course.grade">
+                                <option value="O">O</option>
+                                <option value="A+">A+</option>
+                                <option value="A">A</option>
+                                <option value="B+">B+</option>
+                                <option value="B">B</option>
+                                <option value="U">U</option>
+                            </select>
+                        </td>
+                        <td><button ng-click="removeGpaCourse($index)">Remove</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button ng-click="addGpaCourse()">Add Course</button>
+            <button ng-click="calculateGPA()">Calculate GPA</button>
+            <div class="result" ng-if="gpa !== undefined">
+                <p>Your GPA is: {{ gpa }}</p>
+            </div>
+        </div>
+
+        <!-- CGPA Calculator -->
+        <div class="calc-section">
+            <h1>CGPA Calculator</h1>
+            <form ng-submit="calculateCGPA()">
+                <div class="semester-box">
+                    <label>Semester 1 GPA</label>
+                    <input type="number" ng-model="cgpaSemesters[0].gpa" placeholder="Semester 1 GPA" step="0.01" required>
+                </div>
+                <div class="form-group" ng-repeat="semester in cgpaSemesters.slice(1)">
+                    <label>Semester {{$index + 2}} GPA</label>
+                    <input type="number" ng-model="semester.gpa" placeholder="GPA" step="0.01" required>
+                </div>
+                <button type="button" ng-click="addCgpaSemester()">Add Semester</button>
+                <button type="submit">Calculate CGPA</button>
+            </form>
+            <div class="result" ng-if="cgpa !== undefined">
+                <h2>Your CGPA: {{cgpa}}</h2>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        angular.module('combinedApp', [])
+        .controller('CombinedController', function($scope) {
+            // GPA Calculation Logic
+            const gpaGradePointsMapping = {
+                'O': 10,
+                'A+': 9,
+                'A': 8,
+                'B+': 6,
+                'B': 5,
+                'U': 0
+            };
+
+            $scope.gpaCourses = [{code: '', subject: '', credits: '', grade: 'O'}];
+
+            $scope.calculateGPA = function() {
+                let totalPoints = 0;
+                let totalCredits = 0;
+
+                $scope.gpaCourses.forEach(function(course) {
+                    if(course.credits && course.grade) {
+                        const gradePoints = gpaGradePointsMapping[course.grade] || 0;
+                        totalPoints += parseFloat(course.credits) * gradePoints;
+                        totalCredits += parseFloat(course.credits);
+                    }
+                });
+
+                $scope.gpa = (totalCredits > 0) ? (totalPoints / totalCredits).toFixed(2) : 0;
+            };
+
+            $scope.addGpaCourse = function() {
+                $scope.gpaCourses.push({code: '', subject: '', credits: '', grade: 'O'});
+            };
+
+            $scope.removeGpaCourse = function(index) {
+                $scope.gpaCourses.splice(index, 1);
+            };
+
+            // CGPA Calculation Logic
+            $scope.cgpaSemesters = [{gpa: ''}]; // Initialize with one semester
+
+            $scope.addCgpaSemester = function() {
+                $scope.cgpaSemesters.push({gpa: ''});
+            };
+
+            $scope.calculateCGPA = function() {
+                let totalGPA = 0;
+                $scope.cgpaSemesters.forEach(semester => {
+                    totalGPA += parseFloat(semester.gpa) || 0;
+                });
+                $scope.cgpa = (totalGPA / $scope.cgpaSemesters.length).toFixed(2);
+            };
+        });
+    </script>
+</body>
+</html>
